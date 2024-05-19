@@ -1,0 +1,123 @@
+minReviews_id = A0009060FA8P413511WS 
+maxReviews_id = A1A4U27E8Z4PR4 
+
+-------------------------------------
+-- bez indexa --
+Trajanje dohvata recenzija za korisnika koji ih ima najmanje: 75ms
+Trajanje dohvata recenzija za korisnika koji ih ima najviše: 58ms
+
+-- s indexom --
+
+Trajanje dohvata recenzija za korisnika koji ih ima najmanje: 2ms
+Trajanje dohvata recenzija za korisnika koji ih ima najviše: 4ms
+
+---- zaključak: stvoreni index je značajno ubrzao vrijeme dohvaćanja.
+                Zaključujemo da je kod .aggregate() dijela došlo do korištenja
+                indexa, kao na primjer kod $match dijela gdje se uspoređuju
+                jednakosti vrijednosti userId parametra.
+
+-----------------------
+explain kod dohvata: 
+
+
+{
+    "queryPlanner" : {
+        "plannerVersion" : 1.0,
+        "namespace" : "nmbp.newcoll",
+        "indexFilterSet" : false,
+        "parsedQuery" : {
+            "value.reviews.userId" : {
+                "$eq" : "A1A4U27E8Z4PR4"
+            }
+        },
+        "optimizedPipeline" : true,
+        "winningPlan" : {
+            "stage" : "PROJECTION_DEFAULT",
+            "transformBy" : {
+                "_id" : true,
+                "value" : {
+                    "reviews" : {
+                        "$filter" : {
+                            "input" : "$value.reviews",
+                            "as" : "rws",
+                            "cond" : {
+                                "$in" : [
+                                    "$$rws.userId",
+                                    {
+                                        "$const" : [
+                                            "A1A4U27E8Z4PR4"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "inputStage" : {
+                "stage" : "FETCH",
+                "inputStage" : {
+                    "stage" : "IXSCAN",
+                    "keyPattern" : {
+                        "value.reviews.userId" : 1.0
+                    },
+                    "indexName" : "value.reviews.userId_1",
+                    "isMultiKey" : true,
+                    "multiKeyPaths" : {
+                        "value.reviews.userId" : [
+                            "value.reviews"
+                        ]
+                    },
+                    "isUnique" : false,
+                    "isSparse" : false,
+                    "isPartial" : false,
+                    "indexVersion" : 2.0,
+                    "direction" : "forward",
+                    "indexBounds" : {
+                        "value.reviews.userId" : [
+                            "[\"A1A4U27E8Z4PR4\", \"A1A4U27E8Z4PR4\"]"
+                        ]
+                    }
+                }
+            }
+        },
+        "rejectedPlans" : [
+
+        ]
+    },
+    "serverInfo" : {
+        "host" : "944faa1bfb7e",
+        "port" : 27017.0,
+        "version" : "4.4.18",
+        "gitVersion" : "8ed32b5c2c68ebe7f8ae2ebe8d23f36037a17dea"
+    },
+    "ok" : 1.0
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

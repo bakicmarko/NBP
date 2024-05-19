@@ -1,0 +1,28 @@
+rsconf = { 
+  _id: "myrplset2", 
+  members: [ 
+    { 
+      _id: 0, 
+      host: "rpl0:10001" 
+    }, 
+    { 
+      _id: 1, 
+      host: "rpl1:10002" 
+    }, 
+    { 
+      _id: 2, 
+      host: "rpl2:10003" 
+    }, 
+    { 
+      _id: 3, 
+      host: "rpl3:10004" 
+    }, 
+    { 
+      _id: 4, 
+      host: "rpl4:10005" 
+    }, 
+  ] 
+} 
+
+//  "mongodb://root:rootnmbp@127.0.0.1:27020,127.0.0.1:27021,127.0.0.1:27022,127.0.0.1:27023,127.0.0.1:27024/?authSource=admin&replicaSet=myRepl";
+//  "mongodb://127.0.0.1:30000,127.0.0.1:30001,127.0.0.1:30002,127.0.0.1:30003,127.0.0.1:30004/?replicaSet=myrplset"

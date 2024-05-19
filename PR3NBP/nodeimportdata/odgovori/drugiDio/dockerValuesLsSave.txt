@@ -1,0 +1,18 @@
+C:\Users\mbaki\Desktop\mongo_pack\docker>docker container ls --no-trunc
+CONTAINER ID                                                       IMAGE       COMMAND                         CREATED      STATUS       PORTS                      NAMES
+944faa1bfb7ef813f541d615e9135bd2e91a1dce1b0b58de812dc58ce7a86ed0   mongo:4.4   "docker-entrypoint.sh mongod"   2 days ago   Up 2 hours   0.0.0.0:27017->27017/tcp   docker-mongodb-1
+
+
+
+C:\Users\mbaki\Desktop\mongo_pack\docker>docker network ls --no-trunc
+NETWORK ID                                                         NAME             DRIVER    SCOPE
+efce3a5325b770dce67a30c2c9a33dbb73992554fa30deff5548d5ef3779303b   bridge           bridge    local
+18148346146a49b2835d4696e1e63bad5983784e0d5d42127e984b8bbb4715b1   docker_default   bridge    local
+1c16a81ba27410a57199b106c1cf5f3697bb1d69d94d7068b5b4ee06850adb2d   host             host      local
+c1082e8a5cfc635a663eccf5e1df490d8f7ea33b96e23dcaf35c2ec126cea966   none             null      local
+
+
+C:\Users\mbaki\Desktop\mongo_pack\docker>docker images --no-trunc
+REPOSITORY   TAG       IMAGE ID                                                                  CREATED       SIZE
+mongo        4.4       sha256:d5d112d99ad3605c6b60529cfee035708acec8d77eec38e86990d611ff94f4fb   4 weeks ago   438MB
+

@@ -1,0 +1,36 @@
+*Napomena: prilikom predaje uočeno da nije maknuto productId polje koje je sada jednako _id polja, što se jednostavno napravi
+* kao i brisanje price polja u fin funkciji
+*
+Trajanje: 11.249 sekunde
+
+// map funkcija - emitira se objekt strukture: { product: {}, reviews: []}
+var map = function() { 
+       emit(this.product.productId, { product: this.product, reviews: [this.review]})
+}; 
+ 
+var reduce = function(key, values) { 
+    // uzmi product objekt s njihovim vrijednostima
+    var newStruct = {product: values[0].product, reviews: []}
+    values.forEach( function(value) { 
+        // kod svakog zapisa nadodaj recenziju u polje svih recenzija
+        newStruct.reviews = newStruct.reviews.concat(value.reviews)       
+    });
+              
+    return newStruct;   
+}; 
+
+var fin = function (key, reducedVal) {
+   // porvjeri je li price postavljeno (ili je null), te ako nije, izbriši to polje
+   if(reducedVal.product.price === null) delete reducedVal.product.price;
+   return reducedVal; 
+   
+}; 
+ 
+db.automotive.mapReduce( 
+                     map, 
+                     reduce,                      
+                     { out: "newcoll", 
+                       finalize : fin 
+                     } 
+                   )
+                   

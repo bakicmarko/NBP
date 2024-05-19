@@ -1,0 +1,31 @@
+db.newcoll.find().forEach((productRecord)=>{
+    var sumOfScores = 0;
+    var count = 0;
+    var scoreDistribution={
+        1:0,
+        2:0,
+        3:0,
+        4:0,
+        5:0
+    }
+    productRecord.value.reviews.forEach(rev=>{
+        count++;
+        sumOfScores+=rev.score;
+        scoreDistribution[rev.score]++
+    })
+    print(productRecord._id)
+    print(count)
+    print(scoreDistribution)
+    
+    db.newcoll.update(
+        {_id:productRecord._id}, 
+        {
+            $set:
+                {
+                    value.reviewStats:{
+                    
+                    }
+               }
+            }
+       )
+})

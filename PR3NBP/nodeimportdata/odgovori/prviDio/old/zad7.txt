@@ -1,0 +1,73 @@
+----- 10 s najmanje recenzija------
+ids:
+4678615243
+B0000224KF
+B00002N6TO
+B0000224KG
+B0000060I2
+B00002265H
+B00002N6TX
+B00002N6TW
+B0000224JN
+B00000K3RZ
+-
+Trajanje: 172ms
+
+Upit: 
+// 10 proizvoda s najmanje recenzija
+db.newcoll.aggregate([
+    {
+    
+        $project:{
+            "value.product.title":1,
+             numOfRev: {$size:"$value.reviews"},
+        },
+    },
+    {
+        $sort:{
+            numOfRev:1
+            }
+     },
+     {
+         $limit: 10
+     }
+     
+    ])
+
+
+----- 10 s najviše recenzija ------
+ids:
+B000CITK8S
+B00068XCQU
+B000IE0YIQ
+B000BYELN2
+B00080QHMM
+B000H6P55W
+B0001L0DFA
+B000CDAEQA
+B000AAMY86
+B000B6JJUK
+-
+
+Trajanje: 178ms
+Upit:
+// 10 proizvoda s najvise recenzija
+db.newcoll.aggregate([
+    {
+    
+        $project:{
+            "value.product.title":1,
+             numOfRev: {$size:"$value.reviews"},
+        },
+    },
+    {
+        $sort:{
+            numOfRev:-1
+            }
+     },
+     {
+         $limit: 10
+     }
+     
+    ])
+    

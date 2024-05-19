@@ -1,0 +1,54 @@
+version: "3"
+
+services:
+  rpl0:
+    image: mongo:4.4
+    ports:
+      - 10001:10001
+    command: "--replSet myrplset2 --port 10001"
+    volumes:
+      - rs0_data:/data/db
+      - ./nmbprsdata0:/nmbpdata
+
+  rpl1:
+    image: mongo:4.4
+    ports:
+      - 10002:10002
+    command: "--replSet myrplset2 --port 10002"
+    volumes:
+      - rs1_data:/data/db
+      - ./nmbprsdata1:/nmbpdata
+
+  rpl2:
+    image: mongo:4.4
+    ports:
+      - 10003:10003
+    command: "--replSet myrplset2 --port 10003"
+    volumes:
+      - rs2_data:/data/db
+      - ./nmbprsdata2:/nmbpdata
+
+  rpl3:
+    image: mongo:4.4
+    ports:
+      - 10004:10004
+    command: "--replSet myrplset2 --port 10004"
+    volumes:
+      - rs3_data:/data/db
+      - ./nmbprsdata3:/nmbpdata
+
+  rpl4:
+    image: mongo:4.4
+    ports:
+      - 10005:10005
+    command: "--replSet myrplset2 --port 10005"
+    volumes:
+      - rs4_data:/data/db
+      - ./nmbprsdata4:/nmbpdata
+
+volumes:
+  rs0_data:
+  rs1_data:
+  rs2_data:
+  rs3_data:
+  rs4_data:

@@ -1,0 +1,164 @@
+
+// zahtjeva $filter kako bi izbrisali one kolekcije iz polja kolekcija
+// koje se ispunjavaju uvjete (a prošli su prvu provjeru jer je barem jedna
+// recenzija u njihovom polju sadrži uvjet pretrživanja)
+// zbog toga se u kombinaciji s pretraživanjem pomoću $text koristi
+// i $regexMatch, ali rezlika u vremenima izvođenja se svakako vidi
+// jer se u drugom primjeru korsiti $regex i $regexMatch
+
+--- za dohvaćanje točnih kolekcija ---
+Trajanje s indeksom ($text + $regexMatch): 3.182 sek
+Trajanje bez indeksa ($regex + $regexMatch): 6.192 sek
+
+
+// Odradili smo i primjer gdje se dohvaćaju samo id-evi proizvoda koji sadrže
+// barem jednu recenziju u kojoj text sadrži "find", kako bi jednostavnije
+// prikazali razliku u vremenu pretraživanja kod $text i $regex, tj s text indexom
+// i bez njega
+
+--- samo za dohvaćanje id-eva proizvoda ---
+Trajanje s indeksom ($text):  4 ms
+Trajanje bez indeksa ($regex): 48 ms
+
+
+Zaključak: vidljivo je iz oba primjera da je vrijeme izvođenja naredbe
+           u skučaju kada se koristimo text indexom znatno brže od izvođenja 
+           naredbe koja ne koristi text indeks kod pretraživanja texta.
+           Također u slučaju kada koristimo text index za pretraživanje, nije
+           potrebno dohvaćati potpuno mjesto varijable u dokumentu nego korištenjem
+           $text on pretraživa polje nad kojim postoji text index
+
+
+
+
+
+           // regex for string find
+var rgxQuery = /\W*(find)\W*/
+
+db.newcoll.aggregate([
+{
+    $match:{
+        $text:{$search: "find"}
+        
+        },
+},
+{
+    // remove all reviews from reviews filed that do not contain string "find"
+    // becouse previous match filter returnes any whole document that
+    // has at least one review with text that containes "find"
+    $project:{
+        "value.reviews":{
+            "$filter":{
+                input: "$value.reviews",
+                as: "rws",
+                cond:{
+                    $regexMatch: {
+                      input: "$$rws.text",
+                      regex: rgxQuery,
+                      // caseInsensitive option
+                      options: "i"
+                    }
+                }
+            }
+        }
+    }
+},
+/*
+{
+    $sort:{_id:1}
+},
+*/
+
+{
+    $out:{
+        db:"nmbp",
+        coll:"txcoll"
+    }
+}
+
+])
+// no text search index
+db.newcoll.aggregate([
+{
+    $match:{
+       
+        "value.reviews.text":{$regex:rgxQuery,  $options: "i",}
+        
+        },
+},
+{
+    // remove all reviews from reviews filed that do not contain string "find"
+    // becouse previous match filter returnes any whole document that
+    // has at least one review with text that containes "find"
+    $project:{
+        "value.reviews":{
+            "$filter":{
+                input: "$value.reviews",
+                as: "rws",
+                cond:{
+                    $regexMatch: {
+                      input: "$$rws.text",
+                      regex: rgxQuery,
+                       // caseInsensitive option
+                      options: "i"
+                    }
+                }
+            }
+        }
+    }
+},
+/*
+{
+    $sort:{_id:1}
+},
+*/
+
+{
+    $out:{
+        db:"nmbp",
+        coll:"regxcoll"
+    }
+}
+])
+
+// example just getting ids of products
+db.newcoll.find({$text:{$search: "find"}}, {_id:1})
+
+db.newcoll.find({"value.reviews.text":{$regex:rgxQuery, $options: "i"}}, {_id:1})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

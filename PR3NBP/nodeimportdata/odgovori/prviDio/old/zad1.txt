@@ -1,0 +1,33 @@
+
+kolekcija se zove "automotive" po nazivu preuzete kolekcije "Automotive.txt.gz"
+
+--> Ukupno zapisa u kolekciji: 188 728
+--> Prosječna veličina zapisa: 684.0 bajtova 
+--> Veličina podataka kolekcije: 129 228 059 bajtova         
+--> Veličina podataka kolekcije na disku: 4096.0 bajtova     
+
+Gore navedeni podaci su dobiveni pomoću: "db.automotive.stats()", ali moguće ih je dobiti i posebnim naredbama kao što su db.automotive.storageSize(),  db.automotive.dataSize()...
+
+Vrijednost veličine podataka kolekcije i veličine podataka kolekcije na disku nisu jednake, jer se na disku spremaju
+kompresirani podaci (u ovom slučaju pomoću WiredTiger mehanizma za pohranu), dok veličina podataka predstavlja ukupnu 
+veličinu nekompresiranih podataka.
+
+primjer jednog zapisa:
+
+{
+    "_id" : ObjectId("63b8aba0d1c70fb7a064cae5"),
+    "product" : {
+        "productId" : "B000IZ8AZO",
+        "title" : "Cortech Women's LRX Air Jacket - Plus/Large/Pink",
+        "price" : 312.1
+    },
+    "review" : {
+        "userId" : "A17HSXT283RXWT",
+        "profileName" : "anonymous",
+        "helpfulness" : "3/3",
+        "score" : NumberInt(5),
+        "time" : ISODate("2008-09-30T00:00:00.000+0000"),
+        "summary" : "Great buy!",
+        "text" : "I purchased a different jacket when I first got my motorcycle, but I only used it for about six months before needing a new one. In my local shop, they had no plus-sized women's jackets, so I was wearing a men's jacket, and the plates weren't in good places to be protective in case of an accident. This jacket runs true to size, and seems more durable than the other brand of jacket I had (Joe Rocket). The two separate zip-out liners are very convenient and easy. I am very happy with the fit and quality. I ride about two hours a day, on the interstate, and my old jacket started to fray at certain seams after only a month or so. I have had this one for over a month, and there are no signs of wear. In addition, the jacket is comfortable from 95 degrees down to 50 degrees (with appropriate clothing underneath, of course). It may work in even colder weather, but I haven't ridden in anything colder than 50. Overall, I'm really, really pleased with this purchase!"
+    }
+}

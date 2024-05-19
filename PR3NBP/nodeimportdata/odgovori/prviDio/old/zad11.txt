@@ -1,0 +1,25 @@
+Trajanje: 636 ms
+
+
+
+Upit:
+db.newcoll.aggregate([
+{
+   $match:
+   {
+       $and:
+       [
+           //imaju barem jednu recenziju u kojoj se nalazi niz "wonderful".
+           { $text:{$search: "wonderful", $caseSensitive:true}},
+           //imaju ocjenu barem 4.5,
+           {"value.reviewStats.avgReviewScore":{$gte: 4.5}},
+           //na temelju barem 200 recenzija,
+           {"value.reviewStats.reviewsCount":{$gte: 200}},
+           //koštaju manje od 20 i
+           {"value.product.price":{$lt: 20}}
+           
+       ]
+   }
+}
+
+])

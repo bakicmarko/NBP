@@ -1,0 +1,59 @@
+version: "3"
+
+services:
+  rpl0:
+    image: mongo:4.4
+    container_name: rpl0
+    ports:
+      - 30001:30001
+    command: ["--replSet", "myrplset", "--bind_ip_all", "--port", "30001"]
+    volumes:
+      - rs0_data:/data/db
+      - ./nmbprsdata0:/nmbpdata
+
+  rpl1:
+    image: mongo:4.4
+    container_name: rpl1
+    ports:
+      - 30002:30002
+    command: ["--replSet", "myrplset", "--bind_ip_all", "--port", "30002"]
+    volumes:
+      - rs1_data:/data/db
+      - ./nmbprsdata1:/nmbpdata
+
+  rpl2:
+    image: mongo:4.4
+    container_name: rpl2
+    ports:
+      - 30003:30003
+    command: ["--replSet", "myrplset", "--bind_ip_all", "--port", "30003"]
+    volumes:
+      - rs2_data:/data/db
+      - ./nmbprsdata2:/nmbpdata
+
+  rpl3:
+    image: mongo:4.4
+    container_name: rpl3
+    ports:
+      - 30004:30004
+    command: ["--replSet", "myrplset", "--bind_ip_all", "--port", "30004"]
+    volumes:
+      - rs3_data:/data/db
+      - ./nmbprsdata3:/nmbpdata
+
+  rpl4:
+    image: mongo:4.4
+    container_name: rpl4
+    ports:
+      - 30005:30005
+    command: ["--replSet", "myrplset", "--bind_ip_all", "--port", "30005"]
+    volumes:
+      - rs4_data:/data/db
+      - ./nmbprsdata4:/nmbpdata
+
+volumes:
+  rs0_data:
+  rs1_data:
+  rs2_data:
+  rs3_data:
+  rs4_data:

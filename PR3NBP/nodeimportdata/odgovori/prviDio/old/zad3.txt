@@ -1,0 +1,5 @@
+Broj zapisa bez definirane cijene: 25 228
+Naredba: db.automotive.find({"product.price":null})
+            -- dodatak .count() za samo prebrojavanje
+            - napomena: naredba vraća i zapise u kojma nedostaje polje "price" (ali u ovom slučaju svi zapisi imaju to polje)
+Trajanje: 6ms

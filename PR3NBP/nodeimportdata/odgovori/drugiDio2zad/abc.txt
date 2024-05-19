@@ -1,0 +1,18 @@
+{
+  product: {
+    productId: 'B000C8BMVG',
+    title: 'Ready-Rad 0431334 New Radiator',
+    price: 151.99
+  },
+  review: {
+    userId: 'A191C2YTYXKGYO',
+    profileName: 'BajaScout',
+    helpfulness: '0/0',
+    score: 3,
+    time: 2012-03-06T00:00:00.000Z,
+    summary: 'Transmission cooling fittings not correct',
+    text: `Nice radiator. Fit well, however the transmission cooling lines on my 98 C1500 w/ 
+a 5.7L are 3/8" however the fittings on the radiator are 5/16". I had to buy two 3/8" to 5/16" inverted flare transmission adapters. Bought them at O'Reilleys for $6.51. Amazon web site 
+confirmed this was a fit for my truck. Not a huge deal, but it delayed my repair and added some cost.`
+  }
+}

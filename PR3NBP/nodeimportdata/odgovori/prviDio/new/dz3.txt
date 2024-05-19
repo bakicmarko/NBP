@@ -1,0 +1,109 @@
+db.dvdrent.mapReduce(
+    ´function() {
+        if(this.film !==undefined){
+            if(this.film.actors !==null && this.film.rating === 'R' ){
+                this.film.actors.forEach(function(){
+                    emit({
+                        actorFname: actor.first_name,
+                        actorLname: actor.last_name
+                    },{
+                        films:[this.film.title]
+                    })
+                }, this)
+            }
+        }
+    }´,
+    ´function(key, values) {
+      // remove duplicate films titles
+    }´,
+{
+    out: {inline: 1}
+}
+)
+
+
+//
+  var filmSet = new Set();
+        values.forEach(function(value) {
+            value.films.forEach(function(film) {
+                  films.add(film)
+            })
+              
+        })
+
+        return films
+
+
+
+
+
+db.nobelprizes.mapReduce(
+    `
+    function(){
+        if (this.laureates === undefined){
+            //var currentYear = new Date().getFullYear(this.year)
+
+            if (this.year >=(currentYear-5) 
+                && 
+                this.year <=currentYear){
+
+                  emit(this.year, 
+                      {
+                        surname:this.laureates.surname, 
+                        category:this.laureates.category
+                      });
+
+            }
+          
+        }
+    }`,
+    `
+    function(key,values){
+        var rv={
+            laureates:[]
+        }
+        newLaureates = [];
+        values.forEach(function(value){
+            newLaureates.add(value.laureates)
+        })
+
+       newLaureates.sort(function(a,b){
+            return a.surname.localCompare(y.surname);
+        })
+
+        return {newLaureates}
+    }`,
+    {
+        out: {inline: 1}
+    }
+
+
+
+
+)
+
+db.nobelprizes.mapReduce(
+function(){
+if (this.laureates === undefined) {
+var year = this.year;
+var category = this.category;
+if ((year >=(new Date().getFullYear(this.year)-5)) && (year <=new Date(this.year).getFullYear()))
+emit(this.year, {surname:this.laureates.surname, category:this.laureates.category});
+i
+ja
+function(key,values){
+var rv={
+laureates:[]
+Uj
+values.forEach(function(value)(
+rv.laureates=rv.laureates.concat(value.laureates)
+Bb)
+rv.laureates=rv.laureates.sort(function(a,b){
+return a.surname.localCompare(y.surname);
+})
+return rv;
+},
+i
+out: ( inline: 1)
+i
+)

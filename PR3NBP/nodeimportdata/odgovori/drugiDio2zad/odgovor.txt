@@ -1,0 +1,392 @@
+# # restartiranje docker sustava
+docker system prune -a --volumes
+
+U našoj konfiguraciji imamo:
+        -> 1 config server
+        -> 1 router server
+        -> 5 shard servera (2 replica shard servera):
+                --> rs0 s 2 čvora 
+                --> rs1 s 3 čvorom
+
+
+# prvo pokrećemo 2 replica seta: rs0 i rs1
+# njihove konfiguracije se nalaze u datoteci "docker-compose-shrds.yml"
+docker-compose -f docker-compose-shrds.yml up
+
+# kako bi od replica seta nastao shared cluster potrebno je mongod instanci
+# to ekslicitno navesti -  to smo napravili u gornjem konfiguracijskom dokumentu
+# sa opcijom "--shardsvr". Također zbog opcije --shardsvr, pretpostavljeni port 
+# slušanja je 27018
+
+# nakon pokretanja, u Docker Desktopu se spajamo na jedan od rs0 servera
+# te pokrećemo mongo shell
+mongo --port 27018
+
+# sada povezujemo replica set sa rs.initiate() i konfiguracijom:
+rs.initiate({ 
+  _id: "rs0", 
+  members: [ 
+    { 
+      _id: 0, 
+      host: "shrs00:27018" 
+    }, 
+    { 
+      _id: 1, 
+      host: "shrs01:27018" 
+    } 
+  ] 
+}) 
+
+# zabilježavamo koji je "primary" server ---> u ovom slučaju to je shrs00
+
+# sada to ponavljamo za rs1 server, ali s konfiguracijom:
+rs.initiate({ 
+  _id: "rs1", 
+  members: [ 
+    { 
+      _id: 0, 
+      host: "shrs10:27018" 
+    }, 
+    { 
+      _id: 1, 
+      host: "shrs11:27018" 
+    },
+    { 
+      _id: 2, 
+      host: "shrs12:27018" 
+    } 
+  ]
+})
+
+# također zabilježavamo koji je "primary" server ---> u ovom slučaju to je shrd10
+
+# ova dva zabilježena "primary" servera će nam trebati za dodavanje na router server
+
+# sada pokrećemo router i config server, a njhove konfiguracije su u "docker-compose-config.yml" datoteci
+docker-compose -f docker-compose-config.yml up
+
+# sada je potrebno uspostaviti replica set za config server
+# to radimo isto kao i za rs0 i rs1, ali ne treba nam dodatna konfiguracija jer je to
+# jedini član seta
+# spajamo se na config (ima opciju --configsvr pa mu je podrazumjevani port 27019)
+mongo --port 27019
+
+# inicijaliziramo replica set
+rs.initiate()
+
+# sada je potrebno spojiti se na router server te dodati shard replica setove
+# router sluša na 27017 što je "default" port za mongo
+mongo
+
+# dodajemo shard replica setove (dva "primary" seta koje smo gore zapisali)
+sh.addShard("rs0/shrs00:27018")   
+sh.addShard("rs1/shrs10:27018")  
+
+# sada je potrebno omogućiti fragmentaciju
+# radimo to nad bazom "pr3dio2zad2"
+use pr3dio2zad2
+sh.enableSharding("pr3dio2zad2")
+
+# kreiramo kolekciju koju ćemo koristiti
+db.createCollection("zad2")
+
+# definicija fragmentacije nad "price" poljem
+sh.shardCollection("pr3dio2zad2.zad2", { "price": 1 } ) 
+
+
+# sada učitavamo podatke iz "Automotive.txt" kako je opisano u zadatku
+# to radimo nalik prijašnjim učitavnjima, a cijela skripta je na kraju dokumenta
+node importScript3.js (u direktoriju gdje je ova datoteka)
+
+
+
+# nakon učitavanja provjeravamo stanje fragmenata i shard replica setova s:
+db.zad2.getShardDistribution() 
+sh.status() 
+
+********************************************* ODGOVORI *********************************************
+
+Nakon prvog učitavanja svi su podaci na rs0 i postoji samo 1 chunk.
+Postoji samo jedan raspon ključeva za "price", a ot je od min do max. 
+Ponavljamo učitavanje.
+Opet su svi na rs0 i 1 chunk te jedan raspon.
+Ponavljamo učitavanje.
+Sada su također svi podaci na rs0, ali stovrio se novi chunk, te je rs1 postao aktivan.
+Sada imamo dva raspona: min <-> 0.01 i 0.01 <-> max
+Ponavljamo učitavanje par puta.
+4 ponovljen učitavanja donijela su nove raspone, te se distribucija podataka na rs0 i rs1 
+mijenja (ali su podaci još uvijek većinski na rs0)
+
+Svaki novi chunk je uvijek bio stvoren na serveru suprotnom od onoga na kojem je prošli chunk stvoren.
+Tako je najveća razlika chunkova uvijek 1. Dok trenutno imamo 6 chankova po 3 na svakom serveru
+
+
+
+# sada unosimo drugi set podataka (onih sa cijenom većom od 20 kako smo definirali)
+
+Unošenjem podatak koji imaju "price" > 20, dolazi do stvaranja novog raspona, i to raspona
+koji je blizu maksimalne cijene 999.99 <-> max, a do sada je najveći raspon dio od 19.99 <-> max
+jer smo unosili samo proizvode cijene manje od 20
+
+Također svakim učitavanjem podataka, dolazi do postupačnog izjednačivanja količine podataka između rs0 i rs1
+
+# ispitujemo različite cijene iz mongo shell-a
+db.zad2.distinct("price")
+- ispisuju se sve različite cijene od min(0.01) i max(999.99) što su nam i bili jedni
+od raspona
+
+# gasimo rs1 "primary" kontejner: shrs10
+# ponavljamo upit
+db.zad2.distinct("price")
+
+--> Primjećujemo da se rezultat upita nije primijenio, iako su podaci podijeljeni na rs0 i rs1
+i nakon gašenja "primary" kontejnera od rs1 podatke nismo "zagubili" i upit nam je ispravan.
+To je zbog toga što je jedan od dva "secondary" kontejnera sada preuzeo ulogu ugašenog kontejnera
+i postao "primary"
+
+
+
+
+
+
+********************************************* ODGOVORI *********************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------importScript3-------------------------
+const { execSync } = require("child_process");
+const { MongoClient } = require("mongodb");
+
+fs = require("fs");
+result = [];
+chunks = [];
+chSize = 100;
+try {
+  var data = fs.readFileSync("Automotive.txt", "utf8");
+  data = data.split(/^\s*$(?:\r\n?|\n)/gm);
+
+  data.forEach((groupOfLines) => {
+    if (groupOfLines === "") {
+      return;
+    }
+    groupOfLines = groupOfLines.replace(/^\s*$(?:\r\n?|\n)/gm, "");
+    groupOfLines = groupOfLines
+      .split("\n")
+      .filter((x) => x)
+      .map((line) => {
+        return line.substring(line.indexOf(" ") + 1);
+      });
+
+    if (groupOfLines[2] !== "unknown") {
+      var date = new Date(+groupOfLines[7] * 1000);
+
+      var json = {
+        product: {
+          productId: groupOfLines[0],
+          title: groupOfLines[1],
+          price:
+            groupOfLines[2] !== "unknown" ? parseFloat(groupOfLines[2]) : null,
+        },
+        review: {
+          userId: groupOfLines[3],
+          profileName: groupOfLines[4],
+          helpfulness: groupOfLines[5],
+          score: parseFloat(groupOfLines[6]),
+          time: date,
+          summary: groupOfLines[8],
+          text: groupOfLines[9],
+        },
+      };
+      result.push(json);
+    }
+  });
+} catch (e) {
+  console.log(e.stack);
+}
+//result = result.slice(0, 50);
+
+const groupBy = (array, key) => {
+  return array.reduce((result, currentValue) => {
+    if (!result[currentValue.product[key]]) {
+      result[currentValue.product[key]] = { data: [] };
+    }
+    //console.log(result);
+
+    result[currentValue.product[key]].data.push(currentValue);
+    return result;
+  }, {});
+};
+
+var res = groupBy(result, "productId");
+var jsons = [];
+Object.keys(res).forEach((objKey) => {
+  prices = [];
+  res[objKey].data.forEach((prod) => {
+    prices.push(prod.product.price);
+  });
+  var allEqual = prices.every((v) => v === prices[0]);
+  if (!allEqual) {
+    delete res[objKey];
+  } else {
+    res[objKey]["price"] = prices[0];
+    res[objKey]["reviews"] = [];
+    res[objKey].data.forEach((rv) => res[objKey]["reviews"].push(rv.review));
+    delete res[objKey]["data"];
+
+    var json = {
+      price: res[objKey]["price"],
+      reviews: res[objKey]["reviews"],
+    };
+
+    jsons.push(json);
+  }
+});
+
+const uri = "mongodb://127.0.0.1:27017";
+// Create a new MongoClient
+const client = new MongoClient(uri);
+async function run(isGreater, divider) {
+  try {
+    // filter data based on price
+    console.log("Number of documents befor filtration: " + jsons.length);
+    if (isGreater) jsons = jsons.filter((jsn) => jsn.price >= divider);
+    else jsons = jsons.filter((jsn) => jsn.price < divider);
+
+    // connect
+    await client.connect();
+    // get database and collection (create if non-existing)
+    var coll = await client.db("pr3dio2zad2").collection("zad2");
+
+    const instMany = await coll.insertMany(jsons);
+
+    console.log(`${instMany.insertedCount} documents were inserted.`);
+  } catch (err) {
+    console.log(err);
+  } finally {
+    await client.close();
+  }
+}
+
+run(false, 20).catch(console.dir);
+// run(true, 20).catch(console.dir);
+
+---------------------------------------------------------------
+
+
+
+---------------------- -docker-compose-shrds.yml-----------------
+
+version: "3"
+
+services:
+  shrs00:
+    image: mongo:4.4
+    networks:
+      - shardnet
+    command: mongod --shardsvr --replSet rs0
+    volumes:
+      - shrs00_data:/data/db
+
+  shrs01:
+    image: mongo:4.4
+    networks:
+      - shardnet
+    command: mongod --shardsvr --replSet rs0
+    volumes:
+      - shrs01_data:/data/db
+
+  shrs10:
+    image: mongo:4.4
+    networks:
+      - shardnet
+    command: mongod --shardsvr --replSet rs1
+    volumes:
+      - shrs10_data:/data/db
+
+  shrs11:
+    image: mongo:4.4
+    networks:
+      - shardnet
+    command: mongod --shardsvr --replSet rs1
+    volumes:
+      - shrs11_data:/data/db
+
+  shrs12:
+    image: mongo:4.4
+    networks:
+      - shardnet
+    command: mongod --shardsvr --replSet rs1
+    volumes:
+      - shrs12_data:/data/db
+
+volumes:
+  shrs00_data:
+  shrs01_data:
+  shrs10_data:
+  shrs11_data:
+  shrs12_data:
+
+networks:
+  shardnet:
+    driver: "bridge"
+    name: "shardnet"
+
+
+-----------------------------------------------------------------
+
+
+--------------- docker-compose-config.yml-----------------------
+
+version: "3"
+
+services:
+  config_server:
+    image: mongo:4.4
+    command: mongod --configsvr --replSet replconf
+    volumes:
+      - config_server_data:/data/db
+    networks:
+      - my-shardnet
+
+  router_server:
+    image: mongo:4.4
+    ports:
+      - "27017:27017"
+    command: mongos --bind_ip 0.0.0.0 --configdb replconf/config_server:27019
+    volumes:
+      - router_server_data:/data/db
+      - ./routerdata:/nmbpdata
+    networks:
+      - my-shardnet
+
+volumes:
+  config_server_data:
+  router_server_data:
+
+networks:
+  my-shardnet:
+    external:
+      name: shardnet
+
+-----------------------------------------------------------------------------------

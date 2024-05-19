@@ -1,0 +1,272 @@
+# restartiranje docker sustava
+docker system prune -a --volumes 
+
+# pokretanje clustera (sadržaj .yml datoteke na dnu dokumenta)
+docker-compose -f docker-compose-rpl.yml up
+
+#nakon toga otvoriti Docker Desktop i pronaći izrađene kontejnere:
+rpl0, rpl1, rpl2, rpl3, rpl4
+#i pokrenuti mongo shell u jednom od njih s naredbom:
+mongo --port <port_number> (gdje je posrt_number jedan od: 10001, 10002, 10003, 10004, 10005 - ovisno u kojem smo kontejneru)
+
+# postaviti replica set konfiguraciju:
+rsconf = { 
+  _id: "myrplset2", 
+  members: [ 
+    { 
+      _id: 0, 
+      host: "rpl0:10001" 
+    }, 
+    { 
+      _id: 1, 
+      host: "rpl1:10002" 
+    }, 
+    { 
+      _id: 2, 
+      host: "rpl2:10003" 
+    }, 
+    { 
+      _id: 3, 
+      host: "rpl3:10004" 
+    }, 
+    { 
+      _id: 4, 
+      host: "rpl4:10005" 
+    }, 
+  ] 
+}
+# zatim je uspostaviti s:
+rs.initiate(rsconf)
+
+Nakon uspješnoe konfiguracije replica seta možemo započeti s dodavanjem podataka u našu bazu
+
+
+
+Podatke ćemo dodati pomoću Node JS drivera. Prvo ćemo učitati podatke iz datoteke "Automotive.txt",
+postupak nalik prvog zadatka prvog dijela projekta. Zatim ćemo kako je u zadatku opisano
+podijeliti podatke u grupe od po 100, te u for petlji ih grupno upisivati u bazu.
+Taj proces upisivanja ćemo ponoviti nad istim podacima 10 puta, i izračunati prosječno vrijeme i standardnu devijaciju.
+Sve to ćemo napraviti dva puta: jednom s minimalnim "write concern", a jednom s maksimalnim "write concern"
+
+a) minimalni write concern(0):
+    Prosječno vrijeme: 20554.4 ms
+    Standardna devijacija: 1496.12
+
+b) maksimalni write concern(5):
+    Prosječno vrijeme: 21005.8 ms
+    Standardna devijacija: 3214.99 ms
+
+Write concern parametar opisuje razunu potvrde koju mongoDB zahtjeva za operacije pisanja. Specifičnije, kod replica seta write concern označava
+replica set sudionika mora potvrditi trenutnu operaciju pisanja da se vrati uspješna potvrda. U našem slučaju
+uzimamo vrijenosti:
+        0 -> što označava da ne zahtjevaju potvrde o uspješnom pisanju nego se svaka operacija pisanja šalje sama za sebe.
+            U slučaju replica seta, ako se dogodi neka greška u pisanju, driver koji šalje operacije pisanja prema mongoDB ne može
+            nikako znati o tome, te će doći do nastavka pisanja ("fire and forget")
+        5 -> maksimalna vrijenost za ovu konfiguraciju jer je toliko ukupno sudionika u replika setu. Označava da se potvrda mora propagirati
+            po svim sudionicima prije nego se može vratiti uspješna potvrda driveru. Na ovaj način je omogućeno sigurnije
+            pisanje i pronalaženje pogrešaka u procesu. Zbog toga rezultira većim prosječnim vremenom pisanja za naš zadatak
+            nego kada smo koristili write concern 0.
+
+Iako se iz testiranih vrijednosti ne potvrđuje razlika u brzini izvođenja, nad većom količinom podataka bi se istaknula
+(isto tako može ovisiti o trenutnom stanju uređaja na kojem se izvodi, i sam uređaj utječe na različita vremena izvođenja)
+
+
+--------------------------docker-compose-rpl.yml------------------------------
+version: "3"
+
+services:
+  rpl0:
+    image: mongo:4.4
+    ports:
+      - 10001:10001
+    command: "--replSet myrplset2 --port 10001"
+    volumes:
+      - rs0_data:/data/db
+      - ./nmbprsdata0:/nmbpdata
+
+  rpl1:
+    image: mongo:4.4
+    ports:
+      - 10002:10002
+    command: "--replSet myrplset2 --port 10002"
+    volumes:
+      - rs1_data:/data/db
+      - ./nmbprsdata1:/nmbpdata
+
+  rpl2:
+    image: mongo:4.4
+    ports:
+      - 10003:10003
+    command: "--replSet myrplset2 --port 10003"
+    volumes:
+      - rs2_data:/data/db
+      - ./nmbprsdata2:/nmbpdata
+
+  rpl3:
+    image: mongo:4.4
+    ports:
+      - 10004:10004
+    command: "--replSet myrplset2 --port 10004"
+    volumes:
+      - rs3_data:/data/db
+      - ./nmbprsdata3:/nmbpdata
+
+  rpl4:
+    image: mongo:4.4
+    ports:
+      - 10005:10005
+    command: "--replSet myrplset2 --port 10005"
+    volumes:
+      - rs4_data:/data/db
+      - ./nmbprsdata4:/nmbpdata
+
+volumes:
+  rs0_data:
+  rs1_data:
+  rs2_data:
+  rs3_data:
+  rs4_data:
+-------------------------------------------------------------------------------
+
+
+
+---------------------------------skripta---------------------------------------
+const { MongoClient } = require("mongodb");
+const { getSystemErrorMap } = require("util");
+const { execSync } = require("child_process");
+
+fs = require("fs");
+result = [];
+chunks = [];
+chSize = 100;
+try {
+  var data = fs.readFileSync("Automotive.txt", "utf8");
+  data = data.split(/^\s*$(?:\r\n?|\n)/gm);
+
+  data.forEach((groupOfLines) => {
+    if (groupOfLines === "") {
+      return;
+    }
+    groupOfLines = groupOfLines.replace(/^\s*$(?:\r\n?|\n)/gm, "");
+    groupOfLines = groupOfLines
+      .split("\n")
+      .filter((x) => x)
+      .map((line) => {
+        return line.substring(line.indexOf(" ") + 1);
+      });
+
+    var date = new Date(+groupOfLines[7] * 1000);
+
+    var json = {
+      product: {
+        productId: groupOfLines[0],
+        title: groupOfLines[1],
+        price:
+          groupOfLines[2] !== "unknown" ? parseFloat(groupOfLines[2]) : null,
+      },
+      review: {
+        userId: groupOfLines[3],
+        profileName: groupOfLines[4],
+        helpfulness: groupOfLines[5],
+        score: parseFloat(groupOfLines[6]),
+        time: date,
+        summary: groupOfLines[8],
+        text: groupOfLines[9],
+      },
+    };
+    result.push(json);
+  });
+
+  // cut down the size of data for performance issues or for debug purposes
+  //
+  // chSize = 2;
+  result = result.slice(0, result.length / 2);
+  // --
+
+  // break into arrays of 100 or less
+  for (let i = 0; i < result.length; i += chSize) {
+    chunks.push(result.slice(i, i + chSize));
+  }
+  console.log("Number of documents: " + result.length);
+  // console.log(chunks.length);
+  // console.log(chunks[chunks.length - 1].length);
+} catch (e) {
+  console.log(e.stack);
+}
+
+// handling connection code from: https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/
+// Connection URI
+const uri =
+  "mongodb://127.0.0.1:10001,127.0.0.1:10002,127.0.0.1:10003,127.0.0.1:10004,127.0.0.1:10005/?replicaSet=myrplset2";
+// Create a new MongoClient
+const client = new MongoClient(uri);
+async function run(repetitions, writeCon) {
+  try {
+    // connect
+    await client.connect();
+    // get database and collection (create if non-existing)
+    var coll = await client.db("pr3part2").collection("test123");
+    var timings = [];
+
+    for (let i = 0; i < repetitions; i++) {
+      const start = Date.now();
+      for (let i = 0; i < chunks.length; i++) {
+        const instMany = await coll.insertMany(chunks[i], {
+          writeConcern: writeCon,
+        });
+      }
+      const end = Date.now();
+
+      // delete added _id property from insertMany, for the next loop
+      if (repetitions > 1)
+        chunks.forEach((ch) => ch.forEach((doc) => delete doc._id));
+
+      timings.push(end - start);
+      console.log(`Execution time: ${end - start} ms`);
+    }
+    console.log(timings);
+    const averageTiming = timings.reduce((a, b) => a + b, 0) / timings.length;
+    const sz = (chunks.length - 1) * chSize + chunks[chunks.length - 1].length;
+    console.log(
+      "Average timing for " +
+        sz +
+        " documents: " +
+        averageTiming +
+        " with write concern: " +
+        writeCon
+    );
+    console.log("Standard deviation: " + standardDev(timings));
+  } catch (err) {
+    console.log(err);
+  } finally {
+    await client.close();
+  }
+}
+
+run(10, 5)
+  .then(() => {
+    // console.log("First iteration done...");
+    //execSync("sleep 5");
+    //run(10, 0);
+  })
+  .catch(console.dir);
+
+// run(10, 5).catch(console.dir);
+
+// helper function for calculatig standard deviation from array of numbers
+function standardDev(input) {
+  let mean =
+    input.reduce((acc, curr) => {
+      return acc + curr;
+    }, 0) / input.length;
+  input = input.map((k) => {
+    return (k - mean) ** 2;
+  });
+  let sum = input.reduce((acc, curr) => acc + curr, 0);
+  let variance = sum / input.length;
+  let std = Math.sqrt(variance);
+  return std;
+}
+
+
+-------------------------------------------------------------------------------

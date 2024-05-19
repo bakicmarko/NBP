@@ -1,0 +1,20 @@
+rs.initiate({ 
+  _id: "rs1", 
+  members: [ 
+    { 
+      _id: 0, 
+      host: "shrs10:27018" 
+    }, 
+    { 
+      _id: 1, 
+      host: "shrs11:27018" 
+    },
+    { 
+      _id: 2, 
+      host: "shrs12:27018" 
+    } 
+  ]
+  })
+
+  primary0 - shrs00
+  primary1 - shrs10

@@ -1,0 +1,49 @@
+Trajanje: 5.422 sekunde
+
+---  za grupiranje po proizvodima i skupljanja svih cijena u jedno polje ---
+
+// group docuuments based on "productId"
+// and put all prices to array
+var grouped = db.automotive.aggregate(
+[
+ {
+    $group:{
+        _id:"$product.productId",
+        prices: {˘$push:"$product.price"},
+    }
+  },
+  
+])
+
+--- brisanje ako sve vrijednosti u polju nisu jednake ---
+
+grouped.forEach(e=>{
+    var allEqual = e.prices.every( v => v === e.prices[0] )
+    if(!allEqual){
+        print("Product: " + e._id + " has different price values")
+        db.automotive.deleteMany({"product.productId": e._id})
+        print("Every document with productId: " + e._id + " deleted")
+        }
+    
+})
+
+
+Kako nije postojao niti jedan proizvod za kojeg postoje razlčičite cijene, ubacio sam jedan zapis s različitom cijenom kako
+bi se prikazao pronalazak i brisanje zapisa.
+
+-- ručno dodani primjer s različitom cijenom od ostalih zapisa istog ID-a --
+
+product/productId: B000ET525K
+product/title: Slime 1034-A T-Handle Tire Plug Kit
+product/price: 8
+review/userId: A1HEC49F7VOOX4
+review/profileName: katanaken
+review/helpfulness: 0/0
+review/score: 5.0
+review/time: 1341360000
+review/summary: Saved my butt a couple of times
+review/text: fsadasdsa
+
+
+Nakon brisanja u kolekciji je 188 698 elemenata (od početnih 188 728 + 1) 
+jer je zapisa proizvoda kojeg smo ručno dodali bilo 30 + 1

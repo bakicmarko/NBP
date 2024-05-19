@@ -1,0 +1,6 @@
+// kako bi dobili ¸predzadnjih 10 recenzija poredanih uzlazno po datumu i _idu, poredat ćemo kolekciju silazno 
+// po datumu i _idu, te ćemo prvo preskočiti 10 sa .skip(10) i postaviti limit na 10 s .limit(10) 
+// na taj način dobijemo traženih 10 predzadnjih
+
+Naredba: db.automotive.find({"review.score":1},{"product.price":1, "product.title":1, "review.time":1, _id:0}).sort({"review.time": -1 ,_id: -1}).skip(10).limit(10);
+Trajanje: 120ms
