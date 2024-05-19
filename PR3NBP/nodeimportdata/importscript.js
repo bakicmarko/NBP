@@ -45,7 +45,7 @@ try {
 
 // handling connection code from: https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/
 // Connection URI
-const uri = "mongodb://root:rootnmbp@127.0.0.1:27017/";
+const uri = "mongodb://...";
 const client = new MongoClient(uri);
 async function run() {
   try {
