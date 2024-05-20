@@ -2,7 +2,7 @@ import psycopg2
 import csv
 import datetime
 
-conn = psycopg2.connect("dbname=streamservice user=postgres password=qlylapam")
+conn = psycopg2.connect("CON PARAMS")
 cursor = conn.cursor()
 
 cursor.execute('''CREATE TABLE fakenews
